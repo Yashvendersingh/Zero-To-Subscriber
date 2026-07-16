@@ -47,6 +47,15 @@ app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(reviews.router, prefix=settings.API_V1_STR)
 app.include_router(billing.router, prefix=settings.API_V1_STR)
 
+@app.get("/", tags=["root"])
+async def root():
+    return {
+        "message": f"Welcome to the {settings.PROJECT_NAME} Backend API",
+        "status": "online",
+        "documentation": "/docs",
+        "health_check": "/health"
+    }
+
 @app.get("/health", tags=["health"])
 async def health_check(db: AsyncSession = Depends(get_db)):
     try:
