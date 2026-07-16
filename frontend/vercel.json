@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "https://zero-to-subscriber.onrender.com/api/:path*"
+    },
+    {
       "source": "/((?!assets/|favicon.ico|icons.svg).*)",
       "destination": "/index.html"
     }
