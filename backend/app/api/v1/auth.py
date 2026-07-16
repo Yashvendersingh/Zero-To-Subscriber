@@ -48,13 +48,17 @@ async def login(payload: LoginRequest, response: Response, db: AsyncSession = De
     access_token = create_access_token(user.id)
     refresh_token = create_refresh_token(user.id)
     
+    is_prod = "localhost" not in settings.FRONTEND_URL and "127.0.0.1" not in settings.FRONTEND_URL
+    samesite_val = "none" if is_prod else "lax"
+    secure_val = True if is_prod else False
+
     # Set cookies
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=False,  # Set to True in production (HTTPS)
-        samesite="lax",
+        secure=secure_val,
+        samesite=samesite_val,
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
     )
     
@@ -62,8 +66,8 @@ async def login(payload: LoginRequest, response: Response, db: AsyncSession = De
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=False,  # Set to True in production (HTTPS)
-        samesite="lax",
+        secure=secure_val,
+        samesite=samesite_val,
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
     )
     
@@ -81,8 +85,22 @@ async def login(payload: LoginRequest, response: Response, db: AsyncSession = De
 
 @router.post("/logout")
 async def logout(response: Response):
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token")
+    is_prod = "localhost" not in settings.FRONTEND_URL and "127.0.0.1" not in settings.FRONTEND_URL
+    samesite_val = "none" if is_prod else "lax"
+    secure_val = True if is_prod else False
+
+    response.delete_cookie(
+        "access_token",
+        httponly=True,
+        secure=secure_val,
+        samesite=samesite_val
+    )
+    response.delete_cookie(
+        "refresh_token",
+        httponly=True,
+        secure=secure_val,
+        samesite=samesite_val
+    )
     return {"message": "Logged out successfully"}
 
 @router.get("/me", response_model=UserResponse)
@@ -114,12 +132,16 @@ async def refresh(request: Request, response: Response, db: AsyncSession = Depen
         )
         
     access_token = create_access_token(user.id)
+    is_prod = "localhost" not in settings.FRONTEND_URL and "127.0.0.1" not in settings.FRONTEND_URL
+    samesite_val = "none" if is_prod else "lax"
+    secure_val = True if is_prod else False
+
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=False,
-        samesite="lax",
+        secure=secure_val,
+        samesite=samesite_val,
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
     )
     
