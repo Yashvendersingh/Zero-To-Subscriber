@@ -18,16 +18,21 @@ app = FastAPI(
 )
 
 # CORS configuration
-# We allow localhost:5173 for local Vite development and will dynamically whitelist production URLs as needed
+# We allow localhost:5173 for local development and clean FRONTEND_URL for production CORS checks
+frontend_origin = settings.FRONTEND_URL.strip().rstrip("/")
 origins = [
-    settings.FRONTEND_URL,
+    frontend_origin,
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
 
+if settings.FRONTEND_URL != frontend_origin:
+    origins.append(settings.FRONTEND_URL)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
