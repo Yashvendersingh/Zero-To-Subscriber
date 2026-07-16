@@ -32,8 +32,12 @@ api.interceptors.response.use(
     
     // Check if error is 401 and request hasn't been retried yet
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // If it's a login or signup endpoint, don't attempt to refresh
-      if (originalRequest.url.includes("/auth/login") || originalRequest.url.includes("/auth/signup")) {
+      // If it's a login, signup, or refresh endpoint, don't attempt to refresh
+      if (
+        originalRequest.url.includes("/auth/login") || 
+        originalRequest.url.includes("/auth/signup") ||
+        originalRequest.url.includes("/auth/refresh")
+      ) {
         return Promise.reject(error);
       }
       
