@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { API_URL } from '../lib/api';
 
 function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -16,7 +17,7 @@ function ForgotPassword() {
     setDevResetLink('');
 
     try {
-      const res = await fetch('http://localhost:8000/api/v1/auth/forgot-password', {
+      const res = await fetch(`${API_URL}/api/v1/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
