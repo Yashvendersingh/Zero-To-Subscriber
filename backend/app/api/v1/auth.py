@@ -11,6 +11,32 @@ from app.api.deps import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+import os
+
+def get_cookie_settings(request: Request):
+    """
+    Returns (SameSite, Secure) settings dynamically.
+    Enforces SameSite=None and Secure=True in production (HTTPS/cross-site) to support React on Vercel -> FastAPI on Render.
+    """
+    is_prod = False
+    
+    # 1. Check if hosted on Render production env
+    if os.getenv("RENDER") == "true":
+        is_prod = True
+        
+    # 2. Check if the incoming Origin is secure and not localhost
+    origin = request.headers.get("origin", "")
+    if origin and "localhost" not in origin and "127.0.0.1" not in origin:
+        is_prod = True
+        
+    # 3. Check if frontend config points to production
+    if settings.FRONTEND_URL and "localhost" not in settings.FRONTEND_URL and "127.0.0.1" not in settings.FRONTEND_URL:
+        is_prod = True
+        
+    samesite = "none" if is_prod else "lax"
+    secure = True if is_prod else False
+    return samesite, secure
+
 @router.post("/signup", response_model=UserResponse)
 async def signup(payload: SignupRequest, db: AsyncSession = Depends(get_db)):
     # Check if email exists
@@ -35,7 +61,7 @@ async def signup(payload: SignupRequest, db: AsyncSession = Depends(get_db)):
     return new_user
 
 @router.post("/login")
-async def login(payload: LoginRequest, response: Response, db: AsyncSession = Depends(get_db)):
+async def login(payload: LoginRequest, request: Request, response: Response, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == payload.email))
     user = result.scalar_one_or_none()
     
@@ -48,9 +74,7 @@ async def login(payload: LoginRequest, response: Response, db: AsyncSession = De
     access_token = create_access_token(user.id)
     refresh_token = create_refresh_token(user.id)
     
-    is_prod = "localhost" not in settings.FRONTEND_URL and "127.0.0.1" not in settings.FRONTEND_URL
-    samesite_val = "none" if is_prod else "lax"
-    secure_val = True if is_prod else False
+    samesite_val, secure_val = get_cookie_settings(request)
 
     # Set cookies
     response.set_cookie(
@@ -84,10 +108,8 @@ async def login(payload: LoginRequest, response: Response, db: AsyncSession = De
     }
 
 @router.post("/logout")
-async def logout(response: Response):
-    is_prod = "localhost" not in settings.FRONTEND_URL and "127.0.0.1" not in settings.FRONTEND_URL
-    samesite_val = "none" if is_prod else "lax"
-    secure_val = True if is_prod else False
+async def logout(request: Request, response: Response):
+    samesite_val, secure_val = get_cookie_settings(request)
 
     response.delete_cookie(
         "access_token",
@@ -132,9 +154,7 @@ async def refresh(request: Request, response: Response, db: AsyncSession = Depen
         )
         
     access_token = create_access_token(user.id)
-    is_prod = "localhost" not in settings.FRONTEND_URL and "127.0.0.1" not in settings.FRONTEND_URL
-    samesite_val = "none" if is_prod else "lax"
-    secure_val = True if is_prod else False
+    samesite_val, secure_val = get_cookie_settings(request)
 
     response.set_cookie(
         key="access_token",
